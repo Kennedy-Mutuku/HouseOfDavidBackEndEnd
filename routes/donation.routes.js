@@ -6,7 +6,9 @@ const {
   createDonation,
   updateDonation,
   deleteDonation,
-  getDonationStats
+  getDonationStats,
+  getMyGiving,
+  createMyGiving
 } = require('../controllers/donation.controller');
 const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 
@@ -14,6 +16,8 @@ const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 router.use(protect);
 
 router.get('/stats', getDonationStats);
+router.get('/my-giving', getMyGiving);
+router.post('/my-giving', createMyGiving);
 
 router.route('/')
   .get(getAllDonations)

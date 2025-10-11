@@ -5,10 +5,7 @@ const User = require('./models/User.model');
 const seedUsers = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
 
     console.log('✅ MongoDB Connected');
 

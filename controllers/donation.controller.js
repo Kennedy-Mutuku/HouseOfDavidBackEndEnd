@@ -228,3 +228,71 @@ exports.getDonationStats = async (req, res) => {
     });
   }
 };
+
+// @desc    Get user's own giving history
+// @route   GET /api/donations/my-giving
+// @access  Private
+exports.getMyGiving = async (req, res) => {
+  try {
+    const history = await Donation.find({ createdBy: req.user._id })
+      .sort('-date')
+      .limit(100);
+
+    const stats = await Donation.aggregate([
+      { $match: { createdBy: req.user._id, status: 'Completed' } },
+      {
+        $group: {
+          _id: '$donationType',
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const totalTithe = stats.find(s => s._id === 'Tithe')?.total || 0;
+    const totalOffering = stats.find(s => s._id === 'Offering' || s._id === 'Special Offering')?.total || 0;
+    const totalExtra = stats.filter(s => !['Tithe', 'Offering', 'Special Offering'].includes(s._id))
+      .reduce((sum, s) => sum + s.total, 0);
+    const total = totalTithe + totalOffering + totalExtra;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        history,
+        stats: {
+          totalTithe,
+          totalOffering,
+          totalExtra,
+          total
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Create user's own giving
+// @route   POST /api/donations/my-giving
+// @access  Private
+exports.createMyGiving = async (req, res) => {
+  try {
+    req.body.createdBy = req.user._id;
+    req.body.donor = req.user._id;
+
+    const donation = await Donation.create(req.body);
+
+    res.status(201).json({
+      success: true,
+      message: 'Giving recorded successfully',
+      data: donation
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
