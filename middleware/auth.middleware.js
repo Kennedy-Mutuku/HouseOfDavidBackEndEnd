@@ -57,10 +57,13 @@ exports.protect = async (req, res, next) => {
 // Role-based authorization
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    const userRoles = Array.isArray(req.user.role) ? req.user.role : [req.user.role];
+    const hasRole = roles.some(role => userRoles.includes(role));
+
+    if (!hasRole) {
       return res.status(403).json({
         success: false,
-        message: `User role '${req.user.role}' is not authorized to access this route`
+        message: `User roles '${userRoles.join(', ')}' are not authorized to access this route`
       });
     }
     next();
@@ -69,7 +72,10 @@ exports.authorize = (...roles) => {
 
 // Check if user is admin or superadmin
 exports.isAdminOrSuper = (req, res, next) => {
-  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+  const userRoles = Array.isArray(req.user.role) ? req.user.role : [req.user.role];
+  const hasAdminRole = userRoles.includes('admin') || userRoles.includes('superadmin');
+
+  if (!hasAdminRole) {
     return res.status(403).json({
       success: false,
       message: 'Access denied. Admin privileges required.'
@@ -80,7 +86,9 @@ exports.isAdminOrSuper = (req, res, next) => {
 
 // Check if user is superadmin only
 exports.isSuperAdmin = (req, res, next) => {
-  if (req.user.role !== 'superadmin') {
+  const userRoles = Array.isArray(req.user.role) ? req.user.role : [req.user.role];
+
+  if (!userRoles.includes('superadmin')) {
     return res.status(403).json({
       success: false,
       message: 'Access denied. Super Admin privileges required.'

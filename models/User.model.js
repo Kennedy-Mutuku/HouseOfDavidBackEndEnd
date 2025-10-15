@@ -20,31 +20,49 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
   },
+  username: {
+    type: String,
+    sparse: true,
+    unique: true,
+    trim: true,
+    uppercase: true
+  },
+  idNumber: {
+    type: String,
+    sparse: true,
+    unique: true,
+    trim: true
+  },
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    minlength: [4, 'Password must be at least 4 characters'],
     select: false
   },
-  role: {
+  role: [{
     type: String,
-    enum: ['user', 'admin', 'superadmin'],
-    default: 'user'
-  },
+    enum: ['user', 'admin', 'superadmin']
+  }],
   phone: {
     type: String,
     trim: true
   },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String
+  dateOfBirth: {
+    type: Date
   },
-  group: {
+  peopleGroup: {
     type: String,
     trim: true,
     default: ''
+  },
+  growthGroup: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  dateJoinedCommunity: {
+    type: Date,
+    default: Date.now
   },
   profileImage: {
     type: String,
@@ -67,6 +85,11 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
+  // For regular users (not admin/superadmin), use ID number as default password
+  if (!this.password && this.idNumber && this.role.includes('user') && !this.role.includes('admin') && !this.role.includes('superadmin')) {
+    this.password = this.idNumber;
+  }
+
   if (!this.isModified('password')) {
     return next();
   }

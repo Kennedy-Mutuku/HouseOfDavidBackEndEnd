@@ -14,6 +14,7 @@ const attendanceRoutes = require('./routes/attendance.routes');
 const inGatheringRoutes = require('./routes/ingathering.routes');
 const contentRoutes = require('./routes/content.routes');
 const feedbackRoutes = require('./routes/feedback.routes');
+const contactRoutes = require('./routes/contact.routes');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/ingathering', inGatheringRoutes);
 app.use('/api', contentRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/contact-requests', contactRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

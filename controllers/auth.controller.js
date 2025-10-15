@@ -24,7 +24,7 @@ exports.register = async (req, res) => {
       lastName,
       email,
       password,
-      role: role || 'user',
+      role: role ? (Array.isArray(role) ? role : [role]) : ['user'],
       phone,
       address,
       createdBy: req.user ? req.user._id : null
@@ -58,23 +58,38 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, idNumber, username, password } = req.body;
 
-    // Validate input
-    if (!email || !password) {
+    let user;
+    let passwordToCheck;
+
+    // Determine login method based on provided credentials
+    if (username && password) {
+      // Admin/SuperAdmin login with username and password
+      user = await User.findOne({ username: username.toUpperCase() }).select('+password');
+      passwordToCheck = password;
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+      }
+    } else if (email && idNumber) {
+      // Regular user login with email and ID number
+      user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+      passwordToCheck = idNumber;
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid credentials'
+        });
+      }
+    } else {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password'
-      });
-    }
-
-    // Find user and include password
-    const user = await User.findOne({ email }).select('+password');
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
+        message: 'Please provide either (username and password) or (email and ID number)'
       });
     }
 
@@ -87,7 +102,7 @@ exports.login = async (req, res) => {
     }
 
     // Check password
-    const isPasswordMatch = await user.comparePassword(password);
+    const isPasswordMatch = await user.comparePassword(passwordToCheck);
 
     if (!isPasswordMatch) {
       return res.status(401).json({
@@ -112,6 +127,7 @@ exports.login = async (req, res) => {
         lastName: user.lastName,
         fullName: user.fullName,
         email: user.email,
+        username: user.username,
         role: user.role,
         phone: user.phone,
         profileImage: user.profileImage,

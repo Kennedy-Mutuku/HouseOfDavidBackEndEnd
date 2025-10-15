@@ -51,32 +51,101 @@ exports.getUser = async (req, res) => {
 // @access  Private (Admin/SuperAdmin)
 exports.createUser = async (req, res) => {
   try {
-    const { email, role } = req.body;
+    const { email, idNumber, username, password, role } = req.body;
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // Check if user exists by email
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists'
+        message: 'User with this email already exists'
       });
     }
 
-    // Only superadmin can create admin/superadmin users
-    if ((role === 'admin' || role === 'superadmin') && req.user.role !== 'superadmin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only Super Admin can create Admin or Super Admin users'
-      });
+    // Convert role to array if it's a string
+    const roles = Array.isArray(role) ? role : [role];
+    req.body.role = roles;
+
+    // Check if any admin roles are present
+    const hasAdminRole = roles.includes('admin') || roles.includes('superadmin');
+    const hasUserRole = roles.includes('user');
+
+    // Validation based on roles
+    if (hasAdminRole) {
+      // For admin/superadmin: require username and password
+      if (!username || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username and password are required for Admin and Super Admin users'
+        });
+      }
+
+      // Check if username exists
+      const usernameExists = await User.findOne({ username: username.toUpperCase() });
+      if (usernameExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username already exists'
+        });
+      }
+
+      req.body.username = username.toUpperCase();
+      req.body.password = password;
+    }
+
+    if (hasUserRole && !hasAdminRole) {
+      // For regular users only: require ID number, phone, and date of birth
+      if (!idNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID number is required for regular users'
+        });
+      }
+
+      if (!req.body.phone) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number is required for regular users'
+        });
+      }
+
+      if (!req.body.dateOfBirth) {
+        return res.status(400).json({
+          success: false,
+          message: 'Date of birth is required for regular users'
+        });
+      }
+
+      // Check if ID number exists
+      const idExists = await User.findOne({ idNumber });
+      if (idExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this ID number already exists'
+        });
+      }
+
+      // Set ID number as default password if not provided
+      if (!password) {
+        req.body.password = idNumber;
+      }
     }
 
     req.body.createdBy = req.user._id;
     const user = await User.create(req.body);
 
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    const message = hasAdminRole
+      ? `User created successfully with username: ${username}`
+      : 'User created successfully. Default password is their ID number.';
+
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      data: user
+      message,
+      data: userResponse
     });
   } catch (error) {
     res.status(500).json({
@@ -100,24 +169,24 @@ exports.updateUser = async (req, res) => {
       });
     }
 
-    // Only superadmin can update role to admin/superadmin
-    if (req.body.role && (req.body.role === 'admin' || req.body.role === 'superadmin')) {
-      if (req.user.role !== 'superadmin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Only Super Admin can assign Admin or Super Admin roles'
-        });
-      }
+    // Convert role to array if it's a string
+    if (req.body.role && !Array.isArray(req.body.role)) {
+      req.body.role = [req.body.role];
     }
 
-    // Don't allow password update through this route
-    delete req.body.password;
+    // Handle password update if provided
+    if (req.body.password) {
+      user.password = req.body.password;
+      await user.save();
+      delete req.body.password;
+    }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).select('-password');
+    // Update other fields
+    Object.assign(user, req.body);
+    await user.save();
+
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
 
     res.status(200).json({
       success: true,

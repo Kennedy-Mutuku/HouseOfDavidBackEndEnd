@@ -18,27 +18,30 @@ const seedUsers = async () => {
       {
         firstName: 'Super',
         lastName: 'Admin',
+        username: 'SUPERADMIN',
         email: 'superadmin@hod.com',
-        password: 'password',
-        role: 'superadmin',
+        password: 'SUPERADMIN',
+        role: ['superadmin'],
         phone: '+1234567890',
         isActive: true
       },
       {
         firstName: 'Admin',
         lastName: 'User',
+        username: 'ADMIN',
         email: 'admin@hod.com',
-        password: 'password',
-        role: 'admin',
+        password: 'ADMIN',
+        role: ['admin'],
         phone: '+1234567891',
         isActive: true
       },
       {
         firstName: 'Regular',
         lastName: 'User',
+        username: 'USER',
         email: 'user@hod.com',
-        password: 'password',
-        role: 'user',
+        password: 'USER',
+        role: ['user'],
         phone: '+1234567892',
         isActive: true
       }
@@ -51,9 +54,9 @@ const seedUsers = async () => {
 
     console.log('\n🎉 Database seeded successfully!');
     console.log('\n📝 Login Credentials:');
-    console.log('Super Admin: superadmin@hod.com / password');
-    console.log('Admin: admin@hod.com / password');
-    console.log('User: user@hod.com / password');
+    console.log('Super Admin: SUPERADMIN / SUPERADMIN');
+    console.log('Admin: ADMIN / ADMIN');
+    console.log('User: USER / USER');
 
     process.exit(0);
   } catch (error) {
