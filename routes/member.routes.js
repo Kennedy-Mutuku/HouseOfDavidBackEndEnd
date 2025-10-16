@@ -8,20 +8,19 @@ const {
   deleteMember,
   getMemberStats
 } = require('../controllers/member.controller');
-const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
+const { protect, isAdminOrSuper, optionalAuth } = require('../middleware/auth.middleware');
 
-// All routes require authentication
-router.use(protect);
+// Stats route requires authentication
+router.get('/stats', protect, getMemberStats);
 
-router.get('/stats', getMemberStats);
-
+// Routes without full protection
 router.route('/')
-  .get(getAllMembers)
-  .post(createMember);
+  .get(protect, getAllMembers)
+  .post(protect, createMember); // Still requires auth, but error handling is better
 
 router.route('/:id')
-  .get(getMember)
-  .put(updateMember)
-  .delete(isAdminOrSuper, deleteMember);
+  .get(protect, getMember)
+  .put(protect, updateMember)
+  .delete(protect, isAdminOrSuper, deleteMember);
 
 module.exports = router;

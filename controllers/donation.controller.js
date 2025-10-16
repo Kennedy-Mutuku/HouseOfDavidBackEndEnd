@@ -20,8 +20,8 @@ exports.getAllDonations = async (req, res) => {
     }
 
     const donations = await Donation.find(query)
-      .populate('donor', 'firstName lastName email phone')
-      .populate('createdBy', 'firstName lastName email')
+      .populate('donor', 'firstName lastName fullName email phone idNumber')
+      .populate('createdBy', 'firstName lastName fullName email idNumber')
       .sort('-date');
 
     res.status(200).json({
