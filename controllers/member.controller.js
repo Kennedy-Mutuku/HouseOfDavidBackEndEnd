@@ -78,7 +78,18 @@ exports.getMember = async (req, res) => {
 // @access  Private
 exports.createMember = async (req, res) => {
   try {
+    console.log('===== CREATE MEMBER REQUEST =====');
+    console.log('Full request body:', JSON.stringify(req.body, null, 2));
+
     const { email, phone, idNo, firstName, lastName } = req.body;
+
+    console.log('Extracted fields:');
+    console.log('- firstName:', firstName);
+    console.log('- lastName:', lastName);
+    console.log('- email:', email);
+    console.log('- phone:', phone);
+    console.log('- idNo:', idNo);
+    console.log('=================================');
 
     // Check for duplicate email in Member model
     const existingMemberEmail = await Member.findOne({ email: email.toLowerCase() });
@@ -136,7 +147,11 @@ exports.createMember = async (req, res) => {
       });
     }
 
+    console.log('About to create member with req.body:', JSON.stringify(req.body, null, 2));
+
     const member = await Member.create(req.body);
+
+    console.log('Member created successfully:', JSON.stringify(member, null, 2));
 
     // Create corresponding User account for login
     try {

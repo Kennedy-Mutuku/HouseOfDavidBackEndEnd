@@ -113,20 +113,40 @@ memberSchema.pre('save', async function(next) {
   if (!this.membershipNumber && this.isNew) {
     try {
       // Find the highest membership number
-      const lastMember = await this.constructor.findOne({}, {}, { sort: { 'createdAt': -1 } });
+      const lastMember = await this.constructor.findOne(
+        { membershipNumber: { $exists: true, $ne: null } },
+        {},
+        { sort: { 'membershipNumber': -1 } }
+      );
 
-      let nextNumber = 1;
+      let letter = 'A';
+      let number = 1;
+
       if (lastMember && lastMember.membershipNumber) {
-        // Extract number from format like "HOD-2025-001"
-        const match = lastMember.membershipNumber.match(/HOD-\d+-(\d+)/);
+        // Extract letter and number from format like "A001"
+        const match = lastMember.membershipNumber.match(/^([A-Z])(\d+)$/);
         if (match) {
-          nextNumber = parseInt(match[1]) + 1;
+          letter = match[1];
+          number = parseInt(match[2]);
+
+          // Increment number
+          number++;
+
+          // If number exceeds 999, move to next letter
+          if (number > 999) {
+            number = 1;
+            // Move to next letter
+            if (letter === 'Z') {
+              letter = 'A'; // Wrap around or handle as needed
+            } else {
+              letter = String.fromCharCode(letter.charCodeAt(0) + 1);
+            }
+          }
         }
       }
 
-      // Format: HOD-YEAR-NUMBER (e.g., HOD-2025-001)
-      const year = new Date().getFullYear();
-      this.membershipNumber = `HOD-${year}-${String(nextNumber).padStart(3, '0')}`;
+      // Format: LETTER + NUMBER (e.g., A001, A002, ..., A999, B001, ...)
+      this.membershipNumber = `${letter}${String(number).padStart(3, '0')}`;
     } catch (error) {
       console.error('Error generating membership number:', error);
     }
