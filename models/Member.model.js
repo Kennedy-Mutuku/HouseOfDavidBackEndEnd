@@ -82,6 +82,18 @@ const memberSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  peopleGroup: {
+    type: String,
+    enum: ['Youth', 'Adults', 'Seniors', 'Children', ''],
+    default: '',
+    trim: true
+  },
+  growthGroup: {
+    type: String,
+    enum: ['Group A', 'Group B', 'Group C', 'Group D', ''],
+    default: '',
+    trim: true
+  },
   emergencyContact: {
     name: String,
     relationship: String,
