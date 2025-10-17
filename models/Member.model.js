@@ -53,7 +53,7 @@ const memberSchema = new mongoose.Schema({
     zipCode: String,
     country: {
       type: String,
-      default: 'USA'
+      default: 'Kenya'
     }
   },
   membershipDate: {
