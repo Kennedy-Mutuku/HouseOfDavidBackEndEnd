@@ -6,14 +6,18 @@ const inGatheringSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  fullName: {
+    type: String,
+    required: [true, 'Full name is required'],
+    trim: true
+  },
+  // Keep old fields for backward compatibility
   firstName: {
     type: String,
-    required: [true, 'First name is required'],
     trim: true
   },
   lastName: {
     type: String,
-    required: [true, 'Last name is required'],
     trim: true
   },
   phone: {
@@ -36,7 +40,7 @@ const inGatheringSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Attended', 'Not Interested'],
+    enum: ['Pending', 'Approved', 'Attended', 'Not Interested', 'Rejected'],
     default: 'Pending'
   },
   notes: {
