@@ -4,7 +4,9 @@ const {
   getMyInGathering,
   createInGathering,
   updateInGathering,
-  getAllInGathering
+  getAllInGathering,
+  approveInGathering,
+  deleteInGathering
 } = require('../controllers/ingathering.controller');
 const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 
@@ -17,5 +19,7 @@ router.put('/:id', updateInGathering);
 
 // Admin routes
 router.get('/', isAdminOrSuper, getAllInGathering);
+router.put('/:id/approve', isAdminOrSuper, approveInGathering);
+router.delete('/:id', isAdminOrSuper, deleteInGathering);
 
 module.exports = router;

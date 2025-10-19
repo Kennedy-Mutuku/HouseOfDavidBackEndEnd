@@ -102,7 +102,9 @@ exports.getAllInGathering = async (req, res) => {
     const stats = {
       total: inGathering.length,
       attended: inGathering.filter(item => item.status === 'Attended').length,
-      pending: inGathering.filter(item => item.status === 'Pending').length
+      pending: inGathering.filter(item => item.status === 'Pending').length,
+      approved: inGathering.filter(item => item.status === 'Approved').length,
+      rejected: inGathering.filter(item => item.status === 'Rejected').length
     };
 
     res.status(200).json({
@@ -110,6 +112,64 @@ exports.getAllInGathering = async (req, res) => {
       count: inGathering.length,
       data: inGathering,
       stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Approve in-gathering record (Admin/SuperAdmin)
+// @route   PUT /api/ingathering/:id/approve
+// @access  Private (Admin/SuperAdmin)
+exports.approveInGathering = async (req, res) => {
+  try {
+    const inGathering = await InGathering.findById(req.params.id);
+
+    if (!inGathering) {
+      return res.status(404).json({
+        success: false,
+        message: 'In-gathering record not found'
+      });
+    }
+
+    inGathering.status = 'Approved';
+    await inGathering.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'In-gathering approved successfully',
+      data: inGathering
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Delete in-gathering record (Admin/SuperAdmin)
+// @route   DELETE /api/ingathering/:id
+// @access  Private (Admin/SuperAdmin)
+exports.deleteInGathering = async (req, res) => {
+  try {
+    const inGathering = await InGathering.findById(req.params.id);
+
+    if (!inGathering) {
+      return res.status(404).json({
+        success: false,
+        message: 'In-gathering record not found'
+      });
+    }
+
+    await InGathering.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'In-gathering deleted successfully'
     });
   } catch (error) {
     res.status(500).json({
