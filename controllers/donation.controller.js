@@ -248,20 +248,22 @@ exports.getMyGiving = async (req, res) => {
       }
     ]);
 
+    const totalOffering = stats.find(s => s._id === 'Offering')?.total || 0;
     const totalTithe = stats.find(s => s._id === 'Tithe')?.total || 0;
-    const totalOffering = stats.find(s => s._id === 'Offering' || s._id === 'Special Offering')?.total || 0;
-    const totalExtra = stats.filter(s => !['Tithe', 'Offering', 'Special Offering'].includes(s._id))
+    const totalExtraGivings = stats.find(s => s._id === 'Extra Givings')?.total || 0;
+    const totalOther = stats.filter(s => !['Offering', 'Tithe', 'Extra Givings'].includes(s._id))
       .reduce((sum, s) => sum + s.total, 0);
-    const total = totalTithe + totalOffering + totalExtra;
+    const total = totalOffering + totalTithe + totalExtraGivings + totalOther;
 
     res.status(200).json({
       success: true,
       data: {
         history,
         stats: {
-          totalTithe,
           totalOffering,
-          totalExtra,
+          totalTithe,
+          totalExtraGivings,
+          totalOther,
           total
         }
       }

@@ -13,7 +13,7 @@ const donationSchema = new mongoose.Schema({
   },
   donationType: {
     type: String,
-    enum: ['Tithe', 'Offering', 'Special Giving', 'Building Fund', 'Mission', 'Other'],
+    enum: ['Offering', 'Tithe', 'Extra Givings', 'Building Fund', 'Mission', 'Other'],
     default: 'Offering'
   },
   paymentMethod: {
