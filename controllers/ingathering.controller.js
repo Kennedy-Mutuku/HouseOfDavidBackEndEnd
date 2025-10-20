@@ -178,3 +178,31 @@ exports.deleteInGathering = async (req, res) => {
     });
   }
 };
+
+// @desc    Get member's in-gathering records (Admin/SuperAdmin)
+// @route   GET /api/ingathering/member/:memberId
+// @access  Private (Admin/SuperAdmin)
+exports.getMemberInGathering = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    const inGathering = await InGathering.find({ invitedBy: memberId })
+      .sort('-invitedDate')
+      .limit(5);
+
+    const total = await InGathering.countDocuments({ invitedBy: memberId });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        history: inGathering,
+        total
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

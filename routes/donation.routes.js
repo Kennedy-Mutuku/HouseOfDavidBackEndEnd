@@ -8,7 +8,8 @@ const {
   deleteDonation,
   getDonationStats,
   getMyGiving,
-  createMyGiving
+  createMyGiving,
+  getMemberDonations
 } = require('../controllers/donation.controller');
 const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 
@@ -18,6 +19,7 @@ router.use(protect);
 router.get('/stats', getDonationStats);
 router.get('/my-giving', getMyGiving);
 router.post('/my-giving', createMyGiving);
+router.get('/member/:memberId', isAdminOrSuper, getMemberDonations);
 
 router.route('/')
   .get(getAllDonations)

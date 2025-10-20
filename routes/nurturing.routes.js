@@ -6,7 +6,8 @@ const {
   updateNurturing,
   getAllNurturing,
   approveNurturing,
-  deleteNurturing
+  deleteNurturing,
+  getMemberNurturing
 } = require('../controllers/nurturing.controller');
 const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 
@@ -19,6 +20,7 @@ router.put('/:id', updateNurturing);
 
 // Admin routes
 router.get('/', isAdminOrSuper, getAllNurturing);
+router.get('/member/:memberId', isAdminOrSuper, getMemberNurturing);
 router.put('/:id/approve', isAdminOrSuper, approveNurturing);
 router.delete('/:id', isAdminOrSuper, deleteNurturing);
 

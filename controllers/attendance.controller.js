@@ -133,3 +133,39 @@ exports.getAllAttendance = async (req, res) => {
     });
   }
 };
+
+// @desc    Get member's attendance records (Admin/SuperAdmin)
+// @route   GET /api/attendance/member/:memberId
+// @access  Private (Admin/SuperAdmin)
+exports.getMemberAttendance = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    const history = await Attendance.find({ user: memberId })
+      .sort('-date')
+      .limit(5);
+
+    const total = await Attendance.countDocuments({ user: memberId });
+
+    const thisYear = await Attendance.countDocuments({
+      user: memberId,
+      date: { $gte: new Date(new Date().getFullYear(), 0, 1) }
+    });
+
+    const attendanceRate = thisYear > 0 ? Math.round((thisYear / 52) * 100) : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        history,
+        total,
+        attendanceRate
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

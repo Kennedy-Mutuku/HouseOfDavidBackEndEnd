@@ -181,3 +181,31 @@ exports.deleteNurturing = async (req, res) => {
     });
   }
 };
+
+// @desc    Get member's nurturing records (Admin/SuperAdmin)
+// @route   GET /api/nurturing/member/:memberId
+// @access  Private (Admin/SuperAdmin)
+exports.getMemberNurturing = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    const nurturing = await Nurturing.find({ nurturedBy: memberId })
+      .sort('-startDate')
+      .limit(5);
+
+    const total = await Nurturing.countDocuments({ nurturedBy: memberId });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        history: nurturing,
+        total
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

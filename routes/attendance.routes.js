@@ -3,7 +3,8 @@ const router = express.Router();
 const {
   getMyAttendance,
   signAttendance,
-  getAllAttendance
+  getAllAttendance,
+  getMemberAttendance
 } = require('../controllers/attendance.controller');
 const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 
@@ -15,5 +16,6 @@ router.post('/sign-in', signAttendance);
 
 // Admin routes
 router.get('/', isAdminOrSuper, getAllAttendance);
+router.get('/member/:memberId', isAdminOrSuper, getMemberAttendance);
 
 module.exports = router;

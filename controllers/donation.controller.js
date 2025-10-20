@@ -298,3 +298,92 @@ exports.createMyGiving = async (req, res) => {
     });
   }
 };
+
+// @desc    Get member's donations (Admin/SuperAdmin)
+// @route   GET /api/donations/member/:memberId
+// @access  Private (Admin/SuperAdmin)
+exports.getMemberDonations = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    const mongoose = require('mongoose');
+
+    console.log('[getMemberDonations] Fetching donations for member:', memberId);
+
+    // Convert to ObjectId
+    const memberObjectId = mongoose.Types.ObjectId(memberId);
+
+    // First, find the User associated with this Member
+    const Member = require('../models/Member.model');
+    const User = require('../models/User.model');
+
+    const member = await Member.findById(memberObjectId);
+    console.log('[getMemberDonations] Member found:', member ? member.email : 'not found');
+
+    let userObjectId = null;
+    if (member && member.email) {
+      const user = await User.findOne({ email: member.email });
+      if (user) {
+        userObjectId = user._id;
+        console.log('[getMemberDonations] Associated User found:', userObjectId);
+      }
+    }
+
+    // Fetch all donations for this member - search by BOTH donor (Member ID) AND createdBy (User ID)
+    const query = userObjectId
+      ? { $or: [{ donor: memberObjectId }, { createdBy: userObjectId }] }
+      : { donor: memberObjectId };
+
+    console.log('[getMemberDonations] Query:', JSON.stringify(query));
+
+    const donations = await Donation.find(query)
+      .sort('-createdAt')
+      .populate('donor', 'firstName lastName fullName email')
+      .populate('createdBy', 'firstName lastName fullName email');
+
+    console.log('[getMemberDonations] Found donations:', donations.length);
+
+    // Calculate stats from all completed donations
+    const completedDonations = donations.filter(d => d.status === 'Completed');
+
+    const stats = await Donation.aggregate([
+      { $match: { ...query, status: 'Completed' } },
+      {
+        $group: {
+          _id: '$donationType',
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    console.log('[getMemberDonations] Aggregated stats:', stats);
+
+    const totalOffering = stats.find(s => s._id === 'Offering')?.total || 0;
+    const totalTithe = stats.find(s => s._id === 'Tithe')?.total || 0;
+    const totalExtraGivings = stats.find(s => s._id === 'Extra Givings')?.total || 0;
+    const totalOther = stats.filter(s => !['Offering', 'Tithe', 'Extra Givings'].includes(s._id))
+      .reduce((sum, s) => sum + s.total, 0);
+    const total = totalOffering + totalTithe + totalExtraGivings + totalOther;
+
+    console.log('[getMemberDonations] Total stats:', { totalOffering, totalTithe, totalExtraGivings, totalOther, total });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        history: donations,
+        stats: {
+          totalOffering,
+          totalTithe,
+          totalExtraGivings,
+          totalOther,
+          total
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[getMemberDonations] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
