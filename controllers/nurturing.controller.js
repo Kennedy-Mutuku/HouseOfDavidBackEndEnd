@@ -209,3 +209,179 @@ exports.getMemberNurturing = async (req, res) => {
     });
   }
 };
+
+// @desc    Get current user's nurturing analytics (monthly breakdown)
+// @route   GET /api/nurturing/my-analytics
+// @access  Private
+exports.getMyNurturingAnalytics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get all nurturing records for this user
+    const records = await Nurturing.find({ nurturedBy: userId });
+
+    // Group by month
+    const monthlyData = {};
+    records.forEach(record => {
+      const date = new Date(record.startDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: monthYear,
+          count: 0,
+          year: date.getFullYear(),
+          monthNum: date.getMonth()
+        };
+      }
+      monthlyData[monthYear].count++;
+    });
+
+    // Convert to array and sort by date
+    const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthNum - b.monthNum;
+    });
+
+    // Status breakdown
+    const statusBreakdown = {
+      inProgress: records.filter(r => r.status === 'In Progress').length,
+      pending: records.filter(r => r.status === 'Pending').length,
+      completed: records.filter(r => r.status === 'Completed').length,
+      approved: records.filter(r => r.status === 'Approved').length
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        monthlyData: monthlyArray,
+        totalCount: records.length,
+        activeCount: records.filter(r => r.status === 'In Progress').length,
+        statusBreakdown
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user nurturing analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get specific member's nurturing analytics (Admin/SuperAdmin)
+// @route   GET /api/nurturing/member/:memberId/analytics
+// @access  Private (Admin/SuperAdmin)
+exports.getMemberNurturingAnalytics = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    // Get all nurturing records for this member
+    const records = await Nurturing.find({ nurturedBy: memberId });
+
+    // Group by month
+    const monthlyData = {};
+    records.forEach(record => {
+      const date = new Date(record.startDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: monthYear,
+          count: 0,
+          year: date.getFullYear(),
+          monthNum: date.getMonth()
+        };
+      }
+      monthlyData[monthYear].count++;
+    });
+
+    // Convert to array and sort by date
+    const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthNum - b.monthNum;
+    });
+
+    // Status breakdown
+    const statusBreakdown = {
+      inProgress: records.filter(r => r.status === 'In Progress').length,
+      pending: records.filter(r => r.status === 'Pending').length,
+      completed: records.filter(r => r.status === 'Completed').length,
+      approved: records.filter(r => r.status === 'Approved').length
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        monthlyData: monthlyArray,
+        totalCount: records.length,
+        activeCount: records.filter(r => r.status === 'In Progress').length,
+        statusBreakdown
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching member nurturing analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get organization-wide nurturing analytics
+// @route   GET /api/nurturing/org-analytics
+// @access  Private (Admin/SuperAdmin only)
+exports.getOrganizationNurturingAnalytics = async (req, res) => {
+  try {
+    // Get all nurturing records
+    const allRecords = await Nurturing.find();
+
+    // Group by month
+    const monthlyData = {};
+    allRecords.forEach(record => {
+      const date = new Date(record.startDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: monthYear,
+          count: 0,
+          year: date.getFullYear(),
+          monthNum: date.getMonth()
+        };
+      }
+      monthlyData[monthYear].count++;
+    });
+
+    // Convert to array and sort by date
+    const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthNum - b.monthNum;
+    });
+
+    // Status breakdown
+    const statusBreakdown = {
+      inProgress: allRecords.filter(r => r.status === 'In Progress').length,
+      pending: allRecords.filter(r => r.status === 'Pending').length,
+      completed: allRecords.filter(r => r.status === 'Completed').length,
+      approved: allRecords.filter(r => r.status === 'Approved').length,
+      rejected: allRecords.filter(r => r.status === 'Rejected').length
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        monthlyData: monthlyArray,
+        totalCount: allRecords.length,
+        activeCount: allRecords.filter(r => r.status === 'In Progress').length,
+        statusBreakdown
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching organization nurturing analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

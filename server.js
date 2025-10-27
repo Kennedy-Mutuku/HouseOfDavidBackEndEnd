@@ -17,6 +17,7 @@ const nurturingRoutes = require('./routes/nurturing.routes');
 const contentRoutes = require('./routes/content.routes');
 const feedbackRoutes = require('./routes/feedback.routes');
 const contactRoutes = require('./routes/contact.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/attendance-sessions', attendanceSessionRoutes);
 app.use('/api/ingathering', inGatheringRoutes);
 app.use('/api/nurturing', nurturingRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api', contentRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/contact-requests', contactRoutes);

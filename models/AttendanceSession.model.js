@@ -21,6 +21,23 @@ const attendanceSignatureSchema = new mongoose.Schema({
   },
   ipAddress: {
     type: String
+  },
+  // Link to User account if phone number matches
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  // Link to Member account if phone number matches
+  memberId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Member',
+    default: null
+  },
+  // Flag to indicate if this person is registered in database
+  isRegistered: {
+    type: Boolean,
+    default: false
   }
 }, { _id: true });
 

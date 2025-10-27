@@ -8,7 +8,10 @@ const {
   refreshSession,
   getAllSessions,
   getSession,
-  deleteSession
+  deleteSession,
+  getUserAttendanceStats,
+  getMemberAttendanceStats,
+  getOrganizationAttendanceStats
 } = require('../controllers/attendanceSession.controller');
 const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 
@@ -18,6 +21,11 @@ router.post('/:id/sign', signAttendance);
 
 // Protected routes (authentication required)
 router.use(protect);
+
+// Analytics routes
+router.get('/my-stats', getUserAttendanceStats);
+router.get('/org-stats', isAdminOrSuper, getOrganizationAttendanceStats);
+router.get('/member/:memberId/stats', isAdminOrSuper, getMemberAttendanceStats);
 
 // Admin/SuperAdmin only routes
 router.post('/', isAdminOrSuper, createSession);

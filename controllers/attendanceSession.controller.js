@@ -116,13 +116,39 @@ exports.signAttendance = async (req, res) => {
       });
     }
 
-    // Add signature
+    // Check if phone number matches a User or Member in the database
+    const User = require('../models/User.model');
+    const Member = require('../models/Member.model');
+
+    let matchedUser = null;
+    let matchedMember = null;
+
+    // Try to find user by phone number
+    try {
+      matchedUser = await User.findOne({ phone: phoneNumber });
+    } catch (err) {
+      console.log('Error finding user by phone:', err.message);
+    }
+
+    // Try to find member by phone number
+    try {
+      matchedMember = await Member.findOne({ phone: phoneNumber });
+    } catch (err) {
+      console.log('Error finding member by phone:', err.message);
+    }
+
+    const isRegistered = !!(matchedUser || matchedMember);
+
+    // Add signature with user/member links if found
     session.signatures.push({
       fullName,
       phoneNumber,
       signature,
       signedAt: new Date(),
-      ipAddress: req.ip || req.connection.remoteAddress
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userId: matchedUser ? matchedUser._id : null,
+      memberId: matchedMember ? matchedMember._id : null,
+      isRegistered
     });
 
     await session.save();
@@ -131,7 +157,8 @@ exports.signAttendance = async (req, res) => {
       success: true,
       message: 'Attendance signed successfully',
       data: {
-        signatureCount: session.signatures.length
+        signatureCount: session.signatures.length,
+        linkedToAccount: isRegistered
       }
     });
   } catch (error) {
@@ -291,6 +318,150 @@ exports.deleteSession = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to delete attendance session'
+    });
+  }
+};
+
+// @desc    Get current user's attendance statistics
+// @route   GET /api/attendance-sessions/my-stats
+// @access  Private
+exports.getUserAttendanceStats = async (req, res) => {
+  try {
+    // Get all closed sessions (we don't count active sessions in stats)
+    const allSessions = await AttendanceSession.find({ status: 'Closed' });
+    const totalSessions = allSessions.length;
+
+    // Count sessions where the current user's ID is linked in signatures
+    const attendedSessions = allSessions.filter(session =>
+      session.signatures.some(sig =>
+        sig.userId && sig.userId.toString() === req.user._id.toString()
+      )
+    ).length;
+
+    const missed = totalSessions - attendedSessions;
+    const attendanceRate = totalSessions > 0
+      ? ((attendedSessions / totalSessions) * 100).toFixed(1)
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalSessions,
+        attended: attendedSessions,
+        missed,
+        attendanceRate: parseFloat(attendanceRate)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user attendance stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get specific member's attendance statistics
+// @route   GET /api/attendance-sessions/member/:memberId/stats
+// @access  Private (Admin/SuperAdmin only)
+exports.getMemberAttendanceStats = async (req, res) => {
+  try {
+    const Member = require('../models/Member.model');
+    const { memberId } = req.params;
+
+    const member = await Member.findById(memberId);
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member not found'
+      });
+    }
+
+    // Get all closed sessions
+    const allSessions = await AttendanceSession.find({ status: 'Closed' });
+    const totalSessions = allSessions.length;
+
+    // Count sessions where the member's ID is linked in signatures
+    const attendedSessions = allSessions.filter(session =>
+      session.signatures.some(sig =>
+        sig.memberId && sig.memberId.toString() === memberId
+      )
+    ).length;
+
+    const missed = totalSessions - attendedSessions;
+    const attendanceRate = totalSessions > 0
+      ? ((attendedSessions / totalSessions) * 100).toFixed(1)
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalSessions,
+        attended: attendedSessions,
+        missed,
+        attendanceRate: parseFloat(attendanceRate)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching member attendance stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get organization-wide attendance statistics
+// @route   GET /api/attendance-sessions/org-stats
+// @access  Private (Admin/SuperAdmin only)
+exports.getOrganizationAttendanceStats = async (req, res) => {
+  try {
+    const Member = require('../models/Member.model');
+
+    // Get all closed sessions
+    const allSessions = await AttendanceSession.find({ status: 'Closed' });
+    const totalSessions = allSessions.length;
+
+    // Get total active members
+    const totalMembers = await Member.countDocuments({ status: 'Active' });
+
+    // Calculate total possible attendances (members * sessions)
+    const totalPossibleAttendances = totalMembers * totalSessions;
+
+    // Count unique attendances across all sessions
+    let totalAttendances = 0;
+    allSessions.forEach(session => {
+      totalAttendances += session.signatures.length;
+    });
+
+    // Calculate organization-wide attendance rate
+    const organizationAttendanceRate = totalPossibleAttendances > 0
+      ? ((totalAttendances / totalPossibleAttendances) * 100).toFixed(1)
+      : 0;
+
+    // Average attendance per session
+    const averageAttendancePerSession = totalSessions > 0
+      ? (totalAttendances / totalSessions).toFixed(1)
+      : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalSessions,
+        totalMembers,
+        totalAttendances,
+        totalPossibleAttendances,
+        missedAttendances: totalPossibleAttendances - totalAttendances,
+        organizationAttendanceRate: parseFloat(organizationAttendanceRate),
+        averageAttendancePerSession: parseFloat(averageAttendancePerSession)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching organization attendance stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };

@@ -206,3 +206,160 @@ exports.getMemberInGathering = async (req, res) => {
     });
   }
 };
+
+// @desc    Get current user's in-gathering analytics (monthly breakdown)
+// @route   GET /api/ingathering/my-analytics
+// @access  Private
+exports.getMyInGatheringAnalytics = async (req, res) => {
+  try {
+    const User = require('../models/User.model');
+
+    // Get user's ID from the authenticated user
+    const userId = req.user._id;
+
+    // Get all in-gathering records for this user
+    const records = await InGathering.find({ invitedBy: userId });
+
+    // Group by month
+    const monthlyData = {};
+    records.forEach(record => {
+      const date = new Date(record.invitedDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: monthYear,
+          count: 0,
+          year: date.getFullYear(),
+          monthNum: date.getMonth()
+        };
+      }
+      monthlyData[monthYear].count++;
+    });
+
+    // Convert to array and sort by date
+    const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthNum - b.monthNum;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        monthlyData: monthlyArray,
+        totalCount: records.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user in-gathering analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get specific member's in-gathering analytics (Admin/SuperAdmin)
+// @route   GET /api/ingathering/member/:memberId/analytics
+// @access  Private (Admin/SuperAdmin)
+exports.getMemberInGatheringAnalytics = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    // Get all in-gathering records for this member
+    const records = await InGathering.find({ invitedBy: memberId });
+
+    // Group by month
+    const monthlyData = {};
+    records.forEach(record => {
+      const date = new Date(record.invitedDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: monthYear,
+          count: 0,
+          year: date.getFullYear(),
+          monthNum: date.getMonth()
+        };
+      }
+      monthlyData[monthYear].count++;
+    });
+
+    // Convert to array and sort by date
+    const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthNum - b.monthNum;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        monthlyData: monthlyArray,
+        totalCount: records.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching member in-gathering analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get organization-wide in-gathering analytics
+// @route   GET /api/ingathering/org-analytics
+// @access  Private (Admin/SuperAdmin only)
+exports.getOrganizationInGatheringAnalytics = async (req, res) => {
+  try {
+    // Get all in-gathering records
+    const allRecords = await InGathering.find();
+
+    // Group by month
+    const monthlyData = {};
+    allRecords.forEach(record => {
+      const date = new Date(record.invitedDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: monthYear,
+          count: 0,
+          year: date.getFullYear(),
+          monthNum: date.getMonth()
+        };
+      }
+      monthlyData[monthYear].count++;
+    });
+
+    // Convert to array and sort by date
+    const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.monthNum - b.monthNum;
+    });
+
+    // Get status breakdown
+    const statusBreakdown = {
+      attended: allRecords.filter(r => r.status === 'Attended').length,
+      pending: allRecords.filter(r => r.status === 'Pending').length,
+      approved: allRecords.filter(r => r.status === 'Approved').length,
+      rejected: allRecords.filter(r => r.status === 'Rejected').length
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        monthlyData: monthlyArray,
+        totalCount: allRecords.length,
+        statusBreakdown
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching organization in-gathering analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
