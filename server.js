@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -18,6 +19,7 @@ const contentRoutes = require('./routes/content.routes');
 const feedbackRoutes = require('./routes/feedback.routes');
 const contactRoutes = require('./routes/contact.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const financialRoutes = require('./routes/financial.routes');
 
 const app = express();
 
@@ -26,6 +28,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
+
+// Serve static files for uploaded receipts
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -43,6 +48,7 @@ app.use('/api/attendance-sessions', attendanceSessionRoutes);
 app.use('/api/ingathering', inGatheringRoutes);
 app.use('/api/nurturing', nurturingRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/financial', financialRoutes);
 app.use('/api', contentRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/contact-requests', contactRoutes);

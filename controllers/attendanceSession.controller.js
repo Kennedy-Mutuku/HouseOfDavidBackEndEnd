@@ -327,8 +327,8 @@ exports.deleteSession = async (req, res) => {
 // @access  Private
 exports.getUserAttendanceStats = async (req, res) => {
   try {
-    // Get all closed sessions (we don't count active sessions in stats)
-    const allSessions = await AttendanceSession.find({ status: 'Closed' });
+    // Get all sessions (both Active and Closed) - count sessions as soon as they're opened
+    const allSessions = await AttendanceSession.find();
     const totalSessions = allSessions.length;
 
     // Count sessions where the current user's ID is linked in signatures
@@ -378,8 +378,8 @@ exports.getMemberAttendanceStats = async (req, res) => {
       });
     }
 
-    // Get all closed sessions
-    const allSessions = await AttendanceSession.find({ status: 'Closed' });
+    // Get all sessions (both Active and Closed) - count sessions as soon as they're opened
+    const allSessions = await AttendanceSession.find();
     const totalSessions = allSessions.length;
 
     // Count sessions where the member's ID is linked in signatures
@@ -419,8 +419,8 @@ exports.getOrganizationAttendanceStats = async (req, res) => {
   try {
     const Member = require('../models/Member.model');
 
-    // Get all closed sessions
-    const allSessions = await AttendanceSession.find({ status: 'Closed' });
+    // Get all sessions (both Active and Closed) - count sessions as soon as they're opened
+    const allSessions = await AttendanceSession.find();
     const totalSessions = allSessions.length;
 
     // Get total active members

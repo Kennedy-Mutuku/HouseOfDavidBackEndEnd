@@ -234,12 +234,49 @@ exports.getDonationStats = async (req, res) => {
 // @access  Private
 exports.getMyGiving = async (req, res) => {
   try {
-    const history = await Donation.find({ createdBy: req.user._id })
+    const Member = require('../models/Member.model');
+
+    console.log('[getMyGiving] ===== DEBUG START =====');
+    console.log('[getMyGiving] User ID:', req.user._id);
+    console.log('[getMyGiving] User email:', req.user.email);
+
+    // Find the Member associated with this user
+    const member = await Member.findOne({ email: req.user.email });
+    console.log('[getMyGiving] Member found:', member ? member._id : 'NONE');
+
+    // Build query - search by createdBy (User ID) OR donor (Member ID)
+    const query = {
+      $or: [
+        { createdBy: req.user._id }
+      ]
+    };
+
+    // If member found, also search by donor field (Member ID)
+    if (member) {
+      query.$or.push({ donor: member._id });
+    }
+
+    console.log('[getMyGiving] Query:', JSON.stringify(query));
+
+    // Find donations where user is either the creator OR the donor
+    const history = await Donation.find(query)
       .sort('-date')
       .limit(100);
 
+    console.log('[getMyGiving] Total donations found:', history.length);
+    console.log('[getMyGiving] Sample donation IDs:', history.slice(0, 3).map(d => d._id));
+
+    // Aggregate stats for donations where user is creator OR donor
+    // Use $and to properly combine $or with status filter
     const stats = await Donation.aggregate([
-      { $match: { createdBy: req.user._id, status: 'Completed' } },
+      {
+        $match: {
+          $and: [
+            { status: 'Completed' },
+            { $or: query.$or }
+          ]
+        }
+      },
       {
         $group: {
           _id: '$donationType',
@@ -248,12 +285,23 @@ exports.getMyGiving = async (req, res) => {
       }
     ]);
 
+    console.log('[getMyGiving] Aggregated stats:', JSON.stringify(stats));
+
     const totalOffering = stats.find(s => s._id === 'Offering')?.total || 0;
     const totalTithe = stats.find(s => s._id === 'Tithe')?.total || 0;
     const totalExtraGivings = stats.find(s => s._id === 'Extra Givings')?.total || 0;
     const totalOther = stats.filter(s => !['Offering', 'Tithe', 'Extra Givings'].includes(s._id))
       .reduce((sum, s) => sum + s.total, 0);
-    const total = totalOffering + totalTithe + totalExtraGivings + totalOther;
+    const totalGiving = totalOffering + totalTithe + totalExtraGivings + totalOther;
+
+    console.log('[getMyGiving] Calculated totals:', {
+      totalOffering,
+      totalTithe,
+      totalExtraGivings,
+      totalOther,
+      totalGiving
+    });
+    console.log('[getMyGiving] ===== DEBUG END =====');
 
     res.status(200).json({
       success: true,
@@ -264,11 +312,12 @@ exports.getMyGiving = async (req, res) => {
           totalTithe,
           totalExtraGivings,
           totalOther,
-          total
+          totalGiving
         }
       }
     });
   } catch (error) {
+    console.error('[getMyGiving] ERROR:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -281,8 +330,20 @@ exports.getMyGiving = async (req, res) => {
 // @access  Private
 exports.createMyGiving = async (req, res) => {
   try {
+    const Member = require('../models/Member.model');
+
+    // Find the Member associated with this user
+    const member = await Member.findOne({ email: req.user.email });
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member profile not found. Please contact an administrator.'
+      });
+    }
+
     req.body.createdBy = req.user._id;
-    req.body.donor = req.user._id;
+    req.body.donor = member._id; // Use Member ID, not User ID
 
     const donation = await Donation.create(req.body);
 
@@ -309,8 +370,8 @@ exports.getMemberDonations = async (req, res) => {
 
     console.log('[getMemberDonations] Fetching donations for member:', memberId);
 
-    // Convert to ObjectId
-    const memberObjectId = mongoose.Types.ObjectId(memberId);
+    // Convert to ObjectId using the correct syntax
+    const memberObjectId = new mongoose.Types.ObjectId(memberId);
 
     // First, find the User associated with this Member
     const Member = require('../models/Member.model');

@@ -16,7 +16,7 @@ const { protect, isAdminOrSuper } = require('../middleware/auth.middleware');
 // All routes require authentication
 router.use(protect);
 
-router.get('/stats', getDonationStats);
+router.get('/stats', isAdminOrSuper, getDonationStats);
 router.get('/my-giving', getMyGiving);
 router.post('/my-giving', createMyGiving);
 router.get('/member/:memberId', isAdminOrSuper, getMemberDonations);
